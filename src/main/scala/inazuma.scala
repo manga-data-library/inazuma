@@ -1,7 +1,12 @@
 
-import org.apache.spark.{SparkConf, SparkContext}
-import org.atilika.kuromoji.{Token, Tokenizer}
 import java.io.PrintWriter
+
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
+
+import com.atilika.kuromoji.TokenizerBase.Mode
+import com.atilika.kuromoji.ipadic.{Token, Tokenizer}
+
 /**
  * Created by AKB428
  */
@@ -31,16 +36,16 @@ object inazuma {
 
       for(index <- 0 to tokens.size()-1){
         // 二文字以上の単語を抽出
-        if(tokens.get(index).getSurfaceForm().length() >= 2) {
+        if(tokens.get(index).getSurface().length() >= 2) {
          // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
 
          if (tokens.get(index).getAllFeaturesArray()(0) == "名詞" && (tokens.get(index).getAllFeaturesArray()(1) == "一般" || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞"))
           {
-            features += tokens.get(index).getSurfaceForm
-          } else if (tokens.get(index).getPartOfSpeech == "カスタム名詞" ) {
+            features += tokens.get(index).getSurface
+          } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞" ) {
            // println(tokens.get(index).getPartOfSpeech)
            // println(tokens.get(index).getSurfaceForm)
-           features += tokens.get(index).getSurfaceForm
+           features += tokens.get(index).getSurface
         }
 
         }
@@ -70,16 +75,15 @@ object inazuma {
     out.close
 
     sc.stop
-
-
   }
 }
 
 object CustomTokenizer {
 
   def tokenize(text: String, dictPath: String): java.util.List[Token]  = {
-    Tokenizer.builder().mode(Tokenizer.Mode.SEARCH)
-      .userDictionary(dictPath)
-      .build().tokenize(text)
+     val builder = new Tokenizer.Builder().mode(Mode.SEARCH)
+     val tokenizer: Tokenizer = builder.userDictionary(dictPath).build()
+    
+    tokenizer.tokenize(text)
   }
 }
