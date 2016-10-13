@@ -34,20 +34,20 @@ object inazuma {
       val tokens : java.util.List[Token] = CustomTokenizer.tokenize(x, dictFilePath)
       val features : scala.collection.mutable.ArrayBuffer[String] = new collection.mutable.ArrayBuffer[String]()
 
-      for(index <- 0 to tokens.size()-1){
+      for(index <- 0 to tokens.size()-1) {
         // 二文字以上の単語を抽出
         if(tokens.get(index).getSurface().length() >= 2) {
          // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
 
-         if (tokens.get(index).getAllFeaturesArray()(0) == "名詞" && (tokens.get(index).getAllFeaturesArray()(1) == "一般" || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞"))
-          {
+          if (tokens.get(index).getAllFeaturesArray()(0) == "名詞"
+               && (tokens.get(index).getAllFeaturesArray()(1) == "一般"
+                   || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
+              features += tokens.get(index).getSurface
+          } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞") {
+//            println(tokens.get(index).getPartOfSpeech)
+//            println(tokens.get(index).getSurfaceForm)
             features += tokens.get(index).getSurface
-          } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞" ) {
-           // println(tokens.get(index).getPartOfSpeech)
-           // println(tokens.get(index).getSurfaceForm)
-           features += tokens.get(index).getSurface
-        }
-
+          }
         }
       }
 
@@ -80,7 +80,7 @@ object inazuma {
 
 object CustomTokenizer {
 
-  def tokenize(text: String, dictPath: String): java.util.List[Token]  = {
+  def tokenize(text: String, dictPath: String): java.util.List[Token] = {
      val builder = new Tokenizer.Builder().mode(Mode.SEARCH)
      val tokenizer: Tokenizer = builder.userDictionary(dictPath).build()
     

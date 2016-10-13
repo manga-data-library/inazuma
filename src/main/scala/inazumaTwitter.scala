@@ -43,29 +43,30 @@ object inazumaTwitter {
 
         if(japanese_pattern.matcher(x).find()) {
           val pattern : Pattern = Pattern.compile("^[a-zA-Z]+$|^[0-9]+$") //「英数字か？」の正規表現
-        for (index <- 0 to tokens.size() - 1) {
-          // 二文字以上の単語を抽出
-          if (tokens.get(index).getSurface().length() >= 2) {
-            // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
-            val matcher : Matcher = pattern.matcher(tokens.get(index).getSurface())
-
-            if (!matcher.find()) {
-
-              if (tokens.get(index).getAllFeaturesArray()(0) == "名詞" && (tokens.get(index).getAllFeaturesArray()(1) == "一般" || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
-                features += tokens.get(index).getSurface
-              } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞") {
-                // println(tokens.get(index).getPartOfSpeech)
-                // println(tokens.get(index).getSurfaceForm)
-                features += tokens.get(index).getSurface
+          for (index <- 0 to tokens.size() - 1) {
+            // 二文字以上の単語を抽出
+            if (tokens.get(index).getSurface().length() >= 2) {
+              // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
+              val matcher : Matcher = pattern.matcher(tokens.get(index).getSurface())
+  
+              if (!matcher.find()) {
+  
+                if (tokens.get(index).getAllFeaturesArray()(0) == "名詞"
+                    && (tokens.get(index).getAllFeaturesArray()(1) == "一般"
+                        || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
+                  features += tokens.get(index).getSurface
+                } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞") {
+                  // println(tokens.get(index).getPartOfSpeech)
+                  // println(tokens.get(index).getSurfaceForm)
+                  features += tokens.get(index).getSurface
+                }
               }
             }
-
           }
         }
-        }
 
-      (features)
-    })
+        (features)
+      })
 
     // ソート方法を定義（必ずソートする前に定義）
     implicit val sortIntegersByString = new Ordering[Int] {
@@ -88,14 +89,12 @@ object inazumaTwitter {
     out.close
 
     sc.stop
-
-
   }
 }
 
 object CustomTwitterTokenizer {
 
-  def tokenize(text: String, dictPath: String): java.util.List[Token]  = {
+  def tokenize(text: String, dictPath: String): java.util.List[Token] = {
      val builder = new Tokenizer.Builder().mode(Mode.SEARCH)
      val tokenizer: Tokenizer = builder.userDictionary(dictPath).build()
     
