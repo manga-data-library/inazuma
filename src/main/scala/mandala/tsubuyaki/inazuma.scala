@@ -1,15 +1,10 @@
+package mandala.tsubuyaki
 
 import java.io.PrintWriter
-
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{ SparkConf, SparkContext }
 import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
+import com.atilika.kuromoji.ipadic.{ Token, Tokenizer }
 
-import com.atilika.kuromoji.TokenizerBase.Mode
-import com.atilika.kuromoji.ipadic.{Token, Tokenizer}
-
-/**
- * Created by AKB428
- */
 object inazuma {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("Inazuma Application")
@@ -31,21 +26,21 @@ object inazuma {
 
     // kuromoji(形態要素解析)で日本語解析
     val words = input.flatMap(x => {
-      val tokens : java.util.List[Token] = CustomTokenizer.tokenize(x, dictFilePath)
-      val features : scala.collection.mutable.ArrayBuffer[String] = new collection.mutable.ArrayBuffer[String]()
+      val tokens: java.util.List[Token] = CustomTokenizer.tokenize(x, dictFilePath)
+      val features: scala.collection.mutable.ArrayBuffer[String] = new collection.mutable.ArrayBuffer[String]()
 
-      for(index <- 0 to tokens.size()-1) {
+      for (index <- 0 to tokens.size() - 1) {
         // 二文字以上の単語を抽出
-        if(tokens.get(index).getSurface().length() >= 2) {
-         // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
+        if (tokens.get(index).getSurface().length() >= 2) {
+          // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
 
           if (tokens.get(index).getAllFeaturesArray()(0) == "名詞"
-               && (tokens.get(index).getAllFeaturesArray()(1) == "一般"
-                   || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
-              features += tokens.get(index).getSurface
+            && (tokens.get(index).getAllFeaturesArray()(1) == "一般"
+              || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
+            features += tokens.get(index).getSurface
           } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞") {
-//            println(tokens.get(index).getPartOfSpeech)
-//            println(tokens.get(index).getSurfaceForm)
+            // println(tokens.get(index).getPartOfSpeech)
+            // println(tokens.get(index).getSurfaceForm)
             features += tokens.get(index).getSurface
           }
         }
@@ -56,11 +51,11 @@ object inazuma {
 
     // ソート方法を定義（必ずソートする前に定義）
     implicit val sortIntegersByString = new Ordering[Int] {
-      override def compare(a: Int, b: Int) = a.compare(b)*(-1)
+      override def compare(a: Int, b: Int) = a.compare(b) * (-1)
     }
 
     // ソート
-    val result = words.map(x => (x,1)).reduceByKey((x,y) => x + y).sortBy(_._2)
+    val result = words.map(x => (x, 1)).reduceByKey((x, y) => x + y).sortBy(_._2)
 
     // ソート結果から上位を取得
     for (r <- result.take(printRankingNum)) {
@@ -75,15 +70,5 @@ object inazuma {
     out.close
 
     sc.stop
-  }
-}
-
-object CustomTokenizer {
-
-  def tokenize(text: String, dictPath: String): java.util.List[Token] = {
-     val builder = new Tokenizer.Builder().mode(Mode.SEARCH)
-     val tokenizer: Tokenizer = builder.userDictionary(dictPath).build()
-    
-    tokenizer.tokenize(text)
   }
 }
