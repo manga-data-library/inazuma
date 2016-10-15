@@ -1,59 +1,45 @@
 package mandala.tsubuyaki
 
-import java.io.PrintWriter
-import java.util.regex.{ Matcher, Pattern }
-import org.apache.spark.{ SparkConf, SparkContext }
-import com.atilika.kuromoji.TokenizerBase.Mode
-import com.atilika.kuromoji.ipadic.{ Token, Tokenizer }
-import org.apache.spark.rdd.RDD.rddToPairRDDFunctions
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
-object inazumaTwitter {
-  def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName("Inazuma Application")
-    conf.setMaster("local[*]")
-    val sc = new SparkContext(conf)
+import org.apache.spark.rdd.RDD
 
-    val input = sc.textFile(args(0)) // hdfs://
+import com.atilika.kuromoji.ipadic.Token
+import scala.collection.mutable.ArrayBuffer
 
-    var printRankingNum = 100
-    var dictFilePath = "./dictionary/blank.txt"
+object inazumaTwitter extends AbstractInazuma {
 
-    if (args.length >= 2) {
-      dictFilePath = args(1)
-    }
+  override var printRankingNum = 100
+  override var dictFilePath = "./dictionary/blank.txt"
+  override var outputFilePath = "data.csv"
 
-    if (args.length == 3) {
-      printRankingNum = args(2).toInt
-    }
+  override def analyzeFileWords(input: RDD[String], dictFilePath: String): RDD[String] = {
 
-    // kuromoji(形態要素解析)で日本語解析
-    val words = input.flatMap(x => {
-      // ref:http://www.intellilink.co.jp/article/column/bigdata-kk01.html
-      val japanese_pattern: Pattern = Pattern.compile("[¥¥u3040-¥¥u309F]+") //「ひらがなが含まれているか？」の正規表現
+    // ref:http://www.intellilink.co.jp/article/column/bigdata-kk01.html
+    val japanese_pattern: Pattern = Pattern.compile("[¥¥u3040-¥¥u309F]+") //「ひらがなが含まれているか？」の正規表現
+    val pattern: Pattern = Pattern.compile("^[a-zA-Z]+$|^[0-9]+$") //「英数字か？」の正規表現
 
+    input.flatMap(x => {
       // 不要な文字列の削除
       var text = x.replaceAll("http(s*)://(.*)/", "").replaceAll("¥¥uff57", "")
 
-      val tokens: java.util.List[Token] = CustomTokenizer.tokenize(text, dictFilePath)
-      val features: scala.collection.mutable.ArrayBuffer[String] = new collection.mutable.ArrayBuffer[String]()
+      val tokens = CustomTokenizer.tokenize(text, dictFilePath)
+      val features: ArrayBuffer[String] = new ArrayBuffer[String]()
 
       if (japanese_pattern.matcher(x).find()) {
-        val pattern: Pattern = Pattern.compile("^[a-zA-Z]+$|^[0-9]+$") //「英数字か？」の正規表現
-        for (index <- 0 to tokens.size() - 1) {
+        tokens.foreach { token =>
           // 二文字以上の単語を抽出
-          if (tokens.get(index).getSurface().length() >= 2) {
-            // features += tokens.get(index).getSurfaceForm + "[" + tokens.get(index).getPartOfSpeech + "]"
-            val matcher: Matcher = pattern.matcher(tokens.get(index).getSurface())
+          if (token.getSurface().length() >= 2) {
+            val matcher: Matcher = pattern.matcher(token.getSurface())
 
             if (!matcher.find()) {
-              if (tokens.get(index).getAllFeaturesArray()(0) == "名詞"
-                && (tokens.get(index).getAllFeaturesArray()(1) == "一般"
-                  || tokens.get(index).getAllFeaturesArray()(1) == "固有名詞")) {
-                features += tokens.get(index).getSurface
-              } else if (tokens.get(index).getPartOfSpeechLevel1 == "カスタム名詞") {
-                // println(tokens.get(index).getPartOfSpeech)
-                // println(tokens.get(index).getSurfaceForm)
-                features += tokens.get(index).getSurface
+              val tokenFeatures = token.getAllFeaturesArray()
+              if ((tokenFeatures(0) == "名詞" &&
+                  (tokenFeatures(1) == "一般" || tokenFeatures(1) == "固有名詞")) ||
+                token.getPartOfSpeechLevel1 == "カスタム名詞") {
+                
+                features += token.getSurface
               }
             }
           }
@@ -62,27 +48,5 @@ object inazumaTwitter {
 
       (features)
     })
-
-    // ソート方法を定義（必ずソートする前に定義）
-    implicit val sortIntegersByString = new Ordering[Int] {
-      override def compare(a: Int, b: Int) = a.compare(b) * (-1)
-    }
-
-    // ソート
-    val result = words.map(x => (x, 1)).reduceByKey((x, y) => x + y).sortBy(_._2)
-
-    // ソート結果から上位を取得
-    for (r <- result.take(printRankingNum)) {
-      println(r._1 + "    " + r._2)
-    }
-
-    // 結果をCSVファイルに保存
-    val out = new PrintWriter("data.csv")
-    for (r <- result.take(printRankingNum)) {
-      out.println(r._1 + "," + r._2)
-    }
-    out.close
-
-    sc.stop
   }
 }
