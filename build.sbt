@@ -1,13 +1,10 @@
-name := "inazuma"
+name := "mandala-tsubuyaki"
 
 version := "1.0"
 
-scalaVersion := "2.11.7"
-
-resolvers += "Atilika Open Source repository" at "http://www.atilika.org/nexus/content/repositories/atilika"
+scalaVersion := "2.11.8"
 
 libraryDependencies ++= Seq(
-  "org.atilika.kuromoji" % "kuromoji" % "0.7.7"
+  "com.atilika.kuromoji" % "kuromoji-ipadic" % "0.9.0",
+  "org.apache.spark" %% "spark-core" % "2.0.1"
 )
-
-libraryDependencies += "org.apache.spark" %% "spark-core" % "1.5.2"
